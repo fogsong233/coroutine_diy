@@ -1,0 +1,16 @@
+[
+{
+  "directory": "/Users/kacent/code/coroutine_diy",
+  "arguments": ["/opt/homebrew/opt/llvm/bin/clang-20", "-c", "-Qunused-arguments", "-g", "-O0", "-std=c++23", "-Ibuild/.gens/coroutine_diy/macosx/arm64/debug/platform/windows/idl", "-o", "build/.objs/coroutine_diy/macosx/arm64/debug/src/task.cpp.o", "src/task.cpp"],
+  "file": "src/task.cpp"
+},
+{
+  "directory": "/Users/kacent/code/coroutine_diy",
+  "arguments": ["/opt/homebrew/opt/llvm/bin/clang-20", "-c", "-Qunused-arguments", "-g", "-O0", "-std=c++23", "-Ibuild/.gens/coroutine_diy/macosx/arm64/debug/platform/windows/idl", "-o", "build/.objs/coroutine_diy/macosx/arm64/debug/src/awaiter_demo.cpp.o", "src/awaiter_demo.cpp"],
+  "file": "src/awaiter_demo.cpp"
+},
+{
+  "directory": "/Users/kacent/code/coroutine_diy",
+  "arguments": ["/opt/homebrew/opt/llvm/bin/clang-20", "-c", "-Qunused-arguments", "-g", "-O0", "-std=c++23", "-Ibuild/.gens/coroutine_diy/macosx/arm64/debug/platform/windows/idl", "-o", "build/.objs/coroutine_diy/macosx/arm64/debug/src/main.cpp.o", "src/main.cpp"],
+  "file": "src/main.cpp"
+}]
