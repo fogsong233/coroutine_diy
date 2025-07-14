@@ -6,18 +6,57 @@
 #include <expected>
 #include <functional>
 #include <mutex>
+#include <type_traits>
 #include <vector>
 
 namespace koro {
-
 struct cancellation_wrapper {
   std::function<void()> do_cancel;
 };
+enum class job_state : std::uint8_t { RUNNING, CANCELLED, FINISHED };
 class context;
-template <class VType, class EType> class job {
+
+class job_handle {
+public:
+  job_handle() = default;
+  job_handle(job_handle &&other) = default;
+  job_handle(const job_handle &) = delete;
+  job_handle &operator=(const job_handle &) = delete;
+
+  [[nodiscard]] virtual bool is_active() const noexcept { return false; };
+  [[nodiscard]] virtual bool is_cancelled() const noexcept { return false; };
+  [[nodiscard]] virtual bool is_finished() const noexcept { return true; };
+  virtual void cancel() noexcept {};
+  virtual void resume() noexcept {};
+  virtual ~job_handle() noexcept {};
+  [[nodiscard]] virtual std::coroutine_handle<>
+  get_coro_handle() const noexcept {
+    return {};
+  };
+};
+
+class job_handle_with_coro : public job_handle {
+public:
+  job_handle_with_coro(std::coroutine_handle<> h) noexcept : m_coro(h) {}
+  job_handle_with_coro(const job_handle_with_coro &) = delete;
+  job_handle_with_coro &operator=(const job_handle_with_coro &) = delete;
+  void resume() noexcept override { m_coro.resume(); }
+  [[nodiscard]] bool is_active() const noexcept override {
+    return m_coro.done();
+  }
+  ~job_handle_with_coro() override {
+    if (m_coro) {
+      m_coro.destroy();
+    }
+  }
+
+private:
+  std::coroutine_handle<> m_coro;
+};
+
+template <class VType, class EType> class job : public job_handle {
 public:
   friend class context;
-  enum class job_state : std::uint8_t { RUNNING, CANCELLED, FINISHED };
   class promise_type;
   class awaiter;
 
@@ -54,20 +93,32 @@ public:
     }
   }
 
-  [[nodiscard]] bool is_active() const noexcept {
+  [[nodiscard]] bool is_active() const noexcept override {
     return m_coro.promise().is_active();
   }
 
-  void cancel() noexcept { m_coro.promise().cancel(); }
+  [[nodiscard]] bool is_cancelled() const noexcept override {
+    return m_coro.promise().is_cancelled();
+  }
 
-  void start() noexcept { m_coro.resume(); }
+  [[nodiscard]] bool is_finished() const noexcept override {
+    return m_coro.promise().is_finished();
+  }
+
+  void cancel() noexcept override { m_coro.promise().cancel(); }
+
+  void resume() noexcept override { m_coro.resume(); }
+
+  std::coroutine_handle<> get_coro_handle() const noexcept override {
+    return m_coro;
+  }
 
   // 析构函数
-  ~job() {
+  ~job() override {
     if (m_coro) {
       m_coro.destroy();
     }
-  };
+  }
 
 private:
   explicit job(std::coroutine_handle<promise_type> h) noexcept : m_coro(h) {};
@@ -87,6 +138,10 @@ public:
   std::suspend_always initial_suspend() noexcept { return {}; }
 
   void return_value(return_type value) noexcept { m_value = std::move(value); }
+  void return_value(VType value) noexcept {
+    m_value = std::expected(std::move(value));
+  }
+  void return_void() { static_assert(std::is_same<VType, void>, ); }
 
   void unhandled_exception() noexcept {
     // 将异常包装到 expected 中而不是直接终止
@@ -108,6 +163,12 @@ public:
 
   [[nodiscard]] bool is_active() const noexcept {
     return m_job_state == job_state::RUNNING;
+  }
+  [[nodiscard]] bool is_cancelled() const noexcept {
+    return m_job_state == job_state::CANCELLED;
+  }
+  [[nodiscard]] bool is_finished() const noexcept {
+    return m_job_state == job_state::FINISHED;
   }
 
   void cancel() noexcept {

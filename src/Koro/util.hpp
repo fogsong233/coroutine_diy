@@ -13,6 +13,7 @@ concept returns_expected = requires(Fn fn) {
   } -> std::convertible_to<std::expected<typename decltype(fn())::value_type,
                                          typename decltype(fn())::error_type>>;
 };
+
 } // namespace koro
 
 #endif // util_H
