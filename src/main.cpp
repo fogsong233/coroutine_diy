@@ -6,7 +6,6 @@
 #include "Koro/util.hpp"
 #include <chrono>
 #include <coroutine>
-#include <cstdio>
 #include <string>
 #include <thread>
 using namespace koro;
